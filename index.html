@@ -1,0 +1,999 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enhanced Data Visualization Tool</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0"></script>
+     <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #eef2f7; /* Very light blue-grey background */
+            color: #1a202c; /* Dark text */
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 1.5rem;
+            min-height: 100vh;
+        }
+
+        .container {
+            background-color: #ffffff; /* White container background */
+            border-radius: 1rem; /* Rounded corners */
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.08); /* Slightly stronger shadow */
+            padding: 2.5rem; /* Increased padding */
+            width: 100%;
+            max-width: 960px; /* Increased max width */
+            margin-bottom: 2rem;
+        }
+
+        h1 {
+            color: #2b6cb0; /* Darker blue heading */
+            margin-bottom: 1.5rem;
+            font-size: 2.2rem; /* Slightly larger heading */
+            text-align: center;
+            font-weight: 600;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            color: #2d3748; /* Dark grey label color */
+        }
+
+        textarea {
+            width: 100%;
+            padding: 1rem; /* Increased padding */
+            border: 1px solid #cbd5e0; /* Light grey border */
+            border-radius: 0.5rem;
+            margin-bottom: 1.5rem; /* Increased margin */
+            font-size: 1rem;
+            resize: vertical; /* Allow vertical resizing */
+            min-height: 200px; /* Increased height */
+             font-family: monospace; /* Use monospace for data input */
+             background-color: #f7fafc; /* Very light grey background */
+        }
+
+        .controls {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); /* Adjusted grid for controls */
+            gap: 2rem; /* Increased gap between control groups */
+            margin-bottom: 2rem; /* Increased margin */
+        }
+
+         .control-group {
+             display: flex;
+             flex-direction: column;
+         }
+
+         .control-group label {
+             font-weight: 600;
+             margin-bottom: 0.75rem; /* Increased margin */
+             color: #2d3748;
+         }
+
+        .chart-type-selector {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem 1.25rem; /* Increased gap between radio buttons */
+        }
+
+        .chart-type-selector div {
+             display: flex;
+             align-items: center;
+        }
+
+        .chart-type-selector input[type="radio"] {
+             margin-right: 0.375rem; /* Adjusted margin */
+             /* Custom radio button styling could be added here */
+        }
+
+        .chart-type-selector label {
+             font-weight: 400; /* Normal weight for radio labels */
+             margin-bottom: 0; /* Override default label margin */
+             cursor: pointer;
+             color: #4a5568; /* Medium grey label color */
+        }
+
+        input[type="text"] {
+             width: 100%; /* Make text inputs fill container */
+             padding: 0.75rem; /* Increased padding */
+             border: 1px solid #cbd5e0;
+             border-radius: 0.5rem;
+             font-size: 1rem;
+             background-color: #f7fafc; /* Very light grey background */
+        }
+
+
+        .action-buttons {
+            display: flex;
+            gap: 1.5rem; /* Increased gap */
+            justify-content: center;
+            align-items: center; /* Align items vertically */
+            margin-top: 2rem; /* Increased margin */
+        }
+
+
+        .button {
+            padding: 0.875rem 2.5rem; /* Increased padding */
+            font-size: 1.1rem;
+            font-weight: 600; /* Bold text */
+            color: #ffffff; /* White text */
+            border: none;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            transition: background-color 0.2s ease-in-out, transform 0.1s ease-in-out, opacity 0.2s ease-in-out;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Slightly stronger shadow */
+        }
+
+        .button:disabled {
+            opacity: 0.5; /* More visible disabled state */
+            cursor: not-allowed;
+            box-shadow: none; /* Remove shadow when disabled */
+        }
+
+        .generate-button {
+            background-color: #38a169; /* Darker Green */
+        }
+        .generate-button:hover:not(:disabled) { background-color: #2f855a; }
+        .generate-button:active:not(:disabled) { background-color: #276749; transform: scale(0.98); }
+
+         .export-button {
+             background-color: #3182ce; /* Darker Blue */
+         }
+         .export-button:hover:not(:disabled) { background-color: #2b6cb0; }
+         .export-button:active:not(:disabled) { background-color: #2563eb; transform: scale(0.98); }
+
+         /* Style for the custom file upload button */
+         .upload-button {
+             background-color: #f6ad55; /* Orange */
+             display: inline-block; /* Needed for padding/margin */
+             text-align: center;
+             cursor: pointer;
+         }
+         .upload-button:hover:not(:disabled) { background-color: #ed8936; }
+         .upload-button:active:not(:disabled) { background-color: #dd6b20; transform: scale(0.98); }
+
+         /* Hide the actual file input */
+         #csvFileInput {
+             display: none;
+         }
+
+
+        #loading-indicator {
+            margin-left: 1.5rem; /* Increased margin */
+            font-size: 1rem;
+            color: #4a5568; /* Dark grey */
+            display: none; /* Hidden by default */
+        }
+
+
+        .chart-area {
+             background-color: #ffffff;
+             border-radius: 1rem;
+             box-shadow: 0 10px 20px rgba(0, 0, 0, 0.08);
+             padding: 2rem; /* Padding around the chart */
+             width: 100%;
+             max-width: 960px;
+             margin-top: 2rem;
+        }
+
+        .chart-container {
+            width: 100%;
+            max-width: 900px; /* Slightly less than container for padding */
+             position: relative; /* Needed for Chart.js responsiveness */
+             margin: 0 auto; /* Center chart within its area */
+             height: 450px; /* Fixed height for chart container */
+        }
+
+         /* Info text style */
+         .info-text {
+             font-size: 0.95rem; /* Slightly larger info text */
+             color: #4a5568; /* Dark grey */
+             margin-bottom: 1.5rem; /* Increased margin */
+             line-height: 1.5; /* Improved readability */
+         }
+
+         .info-text pre {
+             background-color: #e2e8f0; /* Light grey background for code */
+             padding: 0.75rem;
+             border-radius: 0.5rem;
+             overflow-x: auto; /* Scroll for wide examples */
+             margin-top: 0.75rem;
+             margin-bottom: 0.75rem;
+             font-size: 0.85rem;
+         }
+
+         #dataTablePreview-container {
+               max-height: 250px; /* Increased limit height of the table preview */
+               overflow-y: auto; /* Add vertical scroll if needed */
+               margin-top: 1.5rem; /* Increased margin */
+               margin-bottom: 1.5rem;
+               display: none; /* Hide by default */
+               border: 1px solid #cbd5e0; /* Add border around table container */
+               border-radius: 0.5rem;
+           }
+
+         #dataTablePreview {
+             width: 100%;
+             border-collapse: collapse;
+             font-size: 0.9rem;
+             /* Removed overflow-x: auto; display: block; from table itself */
+         }
+
+         #dataTablePreview th, #dataTablePreview td {
+             border: 1px solid #e2e8f0; /* Lighter border for table cells */
+             padding: 0.6rem 0.8rem; /* Adjusted padding */
+             text-align: left;
+         }
+
+          #dataTablePreview th {
+              background-color: #ebf4ff; /* Very light blue header background */
+              font-weight: 600;
+              color: #2d3748;
+          }
+
+          #dataTablePreview tbody tr:nth-child(even) {
+              background-color: #f7fafc; /* Light stripe */
+          }
+           #dataTablePreview tbody tr:hover {
+               background-color: #e2e8f0; /* Highlight row on hover */
+           }
+
+
+           .error-list {
+               list-style: disc;
+               margin-left: 1.5rem;
+               color: #e53e3e; /* Red */
+               font-size: 0.95rem; /* Slightly larger error text */
+               line-height: 1.4;
+           }
+
+    </style>
+</head>
+<body>
+
+    <h1>Advanced Data Visualization Tool</h1>
+
+    <div class="container">
+        <label for="dataInput">Enter your data:</label>
+         <div class="info-text">
+             Enter data with columns separated by **comma (,)**, **tab**, or **semicolon (;)**.<br>
+             The first column is for **Labels**. Subsequent columns are for **Data Series**.<br>
+             The **first row** can optionally be **Series Headers**.<br>
+             Empty lines are ignored. Ensure consistent column count per data row for best results.<br>
+             Example:<br>
+             <pre><code class="language-csv">Year,Sales,Expenses
+2020,1000,800
+2021,1200,900
+2022,1500,1000</code></pre>
+         </div>
+        <textarea id="dataInput" placeholder="e.g.,&#10;Month,Revenue,Profit&#10;Jan,5000,2000&#10;Feb,6000,2500&#10;Mar,7500,3000"></textarea>
+
+        <label for="csvFileInput" class="button upload-button">Upload CSV File</label>
+         <input type="file" id="csvFileInput" accept=".csv, text/csv">
+
+
+        <div id="error-message" class="text-red-500 text-sm mb-2" style="display: none;"></div>
+
+        <div id="dataTablePreview-container">
+            <label>Parsed Data Preview:</label>
+            <table id="dataTablePreview">
+                </table>
+        </div>
+
+
+        <div class="controls">
+            <div class="control-group">
+                <label>Chart Type:</label>
+                <div class="chart-type-selector">
+                    <div><input type="radio" id="barChart" name="chartType" value="bar" checked><label for="barChart">Bar</label></div>
+                    <div><input type="radio" id="lineChart" name="chartType" value="line"><label for="lineChart">Line</label></div>
+                    <div><input type="radio" id="pieChart" name="chartType" value="pie"><label for="pieChart">Pie</label></div>
+                    <div><input type="radio" id="doughnutChart" name="chartType" value="doughnut"><label for="doughnutChart">Doughnut</label></div>
+                    <div><input type="radio" id="polarAreaChart" name="chartType" value="polarArea"><label for="polarAreaChart">Polar Area</label></div>
+                    <div><input type="radio" id="radarChart" name="chartType" value="radar"><label for="radarChart">Radar</label></div>
+                     <div><input type="radio" id="scatterChart" name="chartType" value="scatter"><label for="scatterChart">Scatter</label></div>
+                     <div><input type="radio" id="bubbleChart" name="chartType" value="bubble"><label for="bubbleChart">Bubble</label></div>
+                </div>
+            </div>
+
+             <div class="control-group">
+                 <label for="chartTitleInput">Chart Title:</label>
+                 <input type="text" id="chartTitleInput" placeholder="e.g., Company Performance">
+             </div>
+
+             <div class="control-group">
+                 <label for="xAxisLabelInput">X-Axis Label (Bar/Line/Scatter):</label>
+                 <input type="text" id="xAxisLabelInput" placeholder="e.g., Month">
+             </div>
+
+              <div class="control-group">
+                 <label for="yAxisLabelInput">Y-Axis Label (Bar/Line/Scatter):</label>
+                 <input type="text" id="yAxisLabelInput" placeholder="e.g., Value">
+             </div>
+
+        </div>
+
+         <div class="action-buttons">
+            <button class="button generate-button" id="generateButton">Generate Chart</button>
+             <button class="button export-button" id="exportButton">Export as PNG</button>
+             <span id="loading-indicator">Generating...</span>
+         </div>
+
+
+    </div>
+
+    <div class="chart-area">
+        <div class="chart-container">
+            <canvas id="myChart"></canvas>
+        </div>
+    </div>
+
+
+<script>
+    // Register the datalabels plugin globally
+    Chart.register(ChartDataLabels);
+
+    const dataInput = document.getElementById('dataInput');
+    const generateButton = document.getElementById('generateButton');
+    const exportButton = document.getElementById('exportButton');
+    const chartCanvas = document.getElementById('myChart');
+    const errorMessage = document.getElementById('error-message');
+    const dataTablePreviewContainer = document.getElementById('dataTablePreview-container');
+    const dataTablePreview = document.getElementById('dataTablePreview');
+    const chartTitleInput = document.getElementById('chartTitleInput');
+    const xAxisLabelInput = document.getElementById('xAxisLabelInput');
+    const yAxisLabelInput = document.getElementById('yAxisLabelInput');
+    const loadingIndicator = document.getElementById('loading-indicator');
+    const csvFileInput = document.getElementById('csvFileInput'); // Get the file input element
+
+
+    let chartInstance = null; // To hold the current chart instance
+
+     // Function to detect delimiter (comma, tab, or semicolon)
+    function detectDelimiter(text) {
+        const lines = text.trim().split('\n').filter(line => line.trim() !== '');
+        if (lines.length === 0) return ','; // Default to comma if no lines
+
+        const firstLine = lines[0];
+        const counts = {
+            ',': (firstLine.split(',').length - 1),
+            '\t': (firstLine.split('\t').length - 1),
+            ';': (firstLine.split(';').length - 1)
+        };
+
+        // Return the delimiter with the highest count
+        if (counts[','] > counts['\t'] && counts[','] > counts[';']) return ',';
+        if (counts['\t'] > counts[','] && counts['\t'] > counts[';']) return '\t';
+        if (counts[';'] > counts[','] && counts[';'] > counts['\t']) return ';';
+
+        return ','; // Default to comma if counts are equal or zero
+    }
+
+
+    // Function to parse input data (handles multiple series and optional header)
+    function parseData(text) {
+        errorMessage.style.display = 'none'; // Hide previous errors
+        errorMessage.innerHTML = ''; // Clear error content
+        dataTablePreview.innerHTML = ''; // Clear previous table preview
+        dataTablePreviewContainer.style.display = 'none'; // Hide table container initially
+
+        const lines = text.trim().split('\n').filter(line => line.trim() !== ''); // Split lines and remove empty ones
+
+        if (lines.length === 0) {
+             errorMessage.innerHTML = '<li>Please enter some data or upload a file.</li>';
+             errorMessage.style.display = 'block';
+             return null; // No data
+        }
+
+        const delimiter = detectDelimiter(text);
+        const parsedRows = lines.map(line => line.split(delimiter).map(cell => cell.trim()));
+
+        // Determine if the first row is a header
+        // Simple check: if the first cell of the first row is NOT an empty string AND is NOT a number, and there's more than one row, assume header.
+        let hasHeader = parsedRows.length > 1 && parsedRows[0].length > 0 && parsedRows[0][0] !== '' && isNaN(parseFloat(parsedRows[0][0]));
+
+
+        const seriesHeaders = hasHeader ? parsedRows[0].slice(1) : null; // Get headers excluding label column
+        const dataRows = hasHeader ? parsedRows.slice(1) : parsedRows; // Get data rows excluding header row
+
+        if (dataRows.length === 0) {
+             errorMessage.innerHTML = '<li>No data rows found after parsing. Check your data format.</li>';
+             errorMessage.style.display = 'block';
+             return null;
+        }
+
+        const labels = [];
+        const datasets = [];
+        const parsingErrors = [];
+        let expectedColumns = -1; // To check for consistent column count
+
+        // First, determine the expected number of columns from the first data row
+        if (dataRows.length > 0) {
+             expectedColumns = dataRows[0].length;
+             if (expectedColumns < 2) {
+                 parsingErrors.push(`Line ${hasHeader ? 2 : 1}: Data requires at least two columns (Label, Value). Found ${expectedColumns}.`);
+                 // Don't return null immediately, collect all errors
+             }
+        } else {
+             // Should not happen based on dataRows.length check above
+             parsingErrors.push('Internal error: No data rows to determine expected columns.');
+        }
+
+         // If initial check failed, return null
+         if (expectedColumns < 2 && parsingErrors.length > 0) {
+             errorMessage.innerHTML = '<strong>Parsing Errors:</strong><ul class="error-list">' + parsingErrors.map(err => `<li>${err}</li>`).join('') + '</ul>';
+             errorMessage.style.display = 'block';
+             return null;
+         }
+
+
+        // Process data rows
+        dataRows.forEach((row, rowIndex) => {
+            const originalLineNumber = (hasHeader ? 2 : 1) + rowIndex; // Account for header row and 0-based index
+
+            // Handle inconsistent column count
+            let currentRow = [...row]; // Create a copy to modify
+            if (expectedColumns !== -1) { // Only check if expectedColumns was determined
+                if (currentRow.length < expectedColumns) {
+                     // parsingErrors.push(`Line ${originalLineNumber}: Inconsistent column count (${currentRow.length} found, expected ${expectedColumns}). Padding with empty cells.`); // Too noisy?
+                     while(currentRow.length < expectedColumns) {
+                         currentRow.push(''); // Pad with empty strings
+                     }
+                } else if (currentRow.length > expectedColumns) {
+                     parsingErrors.push(`Line ${originalLineNumber}: Inconsistent column count (${currentRow.length} found, expected ${expectedColumns}). Extra columns ignored.`);
+                     currentRow = currentRow.slice(0, expectedColumns); // Trim extra columns
+                }
+            } else {
+                 // If expectedColumns couldn't be determined (shouldn't happen with current logic), skip row
+                 parsingErrors.push(`Line ${originalLineNumber}: Could not determine expected columns. Skipping row.`);
+                 return;
+            }
+
+
+            const label = currentRow[0];
+            if (label === '') {
+                 // Use row number as label placeholder if empty
+                 labels.push(`Row ${rowIndex + 1}`);
+                 // parsingErrors.push(`Line ${originalLineNumber}: Label is empty. Using "Row ${rowIndex + 1}".`); // Too noisy?
+            } else {
+                 labels.push(label);
+            }
+
+
+            // Process values for each series in this row
+            for (let i = 0; i < expectedColumns - 1; i++) { // Iterate through value columns
+                 const valueString = currentRow[i + 1]; // Value is in column i+1
+                 const value = parseFloat(valueString);
+
+                 // Ensure dataset exists for this series index
+                 if (!datasets[i]) {
+                     datasets[i] = {
+                          label: seriesHeaders ? seriesHeaders[i] : `Series ${i + 1}`,
+                          data: []
+                     };
+                 }
+
+                 if (valueString === undefined || valueString.trim() === '') {
+                      // Handle empty cells for values - push NaN
+                      datasets[i].data.push(NaN);
+                      // parsingErrors.push(`Line ${originalLineNumber}, Column ${i + 2}: Empty value. Treated as NaN.`); // Too noisy?
+                 } else if (isNaN(value)) {
+                     // Handle non-numeric values
+                     datasets[i].data.push(NaN); // Push NaN so Chart.js can handle it
+                     parsingErrors.push(`Line ${originalLineNumber}, Column ${i + 2}: Invalid number format "${valueString}". Treated as NaN.`);
+                 } else {
+                     datasets[i].data.push(value);
+                 }
+            }
+        });
+
+         // After processing all rows, ensure all datasets have the same length (match labels length)
+         const labelsLength = labels.length;
+         datasets.forEach(dataset => {
+             if (dataset.data.length < labelsLength) {
+                 // Pad with NaN if shorter
+                 while(dataset.data.length < labelsLength) {
+                     dataset.data.push(NaN);
+                 }
+             } else if (dataset.data.length > labelsLength) {
+                  // Should not happen with row trimming logic, but as a safeguard
+                  dataset.data = dataset.data.slice(0, labelsLength);
+             }
+         });
+
+
+        if (labels.length === 0) {
+             parsingErrors.push('No valid data rows found after processing.');
+        }
+
+        // Display collected errors/warnings
+        if (parsingErrors.length > 0) {
+             errorMessage.innerHTML = '<strong>Parsing Warnings/Errors:</strong><ul class="error-list">' + parsingErrors.map(err => `<li>${err}</li>`).join('') + '</ul>';
+             errorMessage.style.display = 'block';
+        }
+
+
+        // Populate data table preview if there's data
+        if (labels.length > 0 && datasets.length > 0) {
+            populateDataTablePreview(labels, seriesHeaders, datasets);
+        } else {
+             // If no valid data, ensure table preview is hidden
+             dataTablePreview.innerHTML = '';
+             dataTablePreviewContainer.style.display = 'none';
+        }
+
+
+        // Only return data if there are labels and at least one dataset with data points
+        if (labels.length > 0 && datasets.length > 0 && datasets[0].data.length > 0) {
+             return { labels, datasets, hasHeader, originalParsedRows: parsedRows }; // Return original parsed rows for scatter/bubble
+        } else {
+             // If parsing resulted in no valid data, return null and ensure error message is shown
+             if (parsingErrors.length === 0) { // If no specific errors, show a generic one
+                  errorMessage.innerHTML = '<li>Could not parse data into valid labels and values. Please check format and content.</li>';
+                  errorMessage.style.display = 'block';
+             }
+             return null;
+        }
+    }
+
+    // Function to populate the data table preview
+    function populateDataTablePreview(labels, seriesHeaders, datasets) {
+        if (labels.length === 0 || datasets.length === 0) return;
+
+        dataTablePreviewContainer.style.display = 'block';
+        let tableHTML = '<thead><tr><th>Label</th>';
+
+        // Add header row
+        if (seriesHeaders) {
+            seriesHTML = seriesHeaders.map(header => `<th>${header}</th>`).join('');
+             tableHTML += seriesHTML;
+        } else {
+             // Add default headers if no header row was detected
+             tableHTML += datasets.map((_, i) => `<th>Series ${i + 1}</th>`).join('');
+        }
+        tableHTML += '</tr></thead><tbody>';
+
+        // Add data rows
+        labels.forEach((label, rowIndex) => {
+            tableHTML += `<tr><td>${label}</td>`;
+            datasets.forEach(dataset => {
+                // Display the parsed number or "NaN"
+                const value = dataset.data[rowIndex]; // Get value for this dataset and row
+                tableHTML += `<td>${isNaN(value) ? 'NaN' : value}</td>`;
+            });
+            tableHTML += '</tr>';
+        });
+
+        tableHTML += '</tbody>';
+        dataTablePreview.innerHTML = tableHTML;
+    }
+
+
+    // Function to generate the chart
+    function generateChart() {
+        // Show loading indicator and disable buttons
+        loadingIndicator.style.display = 'inline';
+        generateButton.disabled = true;
+        exportButton.disabled = true;
+        // Disable file input label as well
+        document.querySelector('label[for="csvFileInput"]').classList.add('disabled');
+
+
+        // Use a small timeout to allow the UI to update before parsing/charting
+        setTimeout(() => {
+            const data = parseData(dataInput.value);
+
+            // Destroy existing chart before creating a new one
+            if (chartInstance) {
+                chartInstance.destroy();
+            }
+            chartInstance = null; // Clear instance
+
+            if (!data) {
+                // Data parsing failed or no valid data
+                loadingIndicator.style.display = 'none';
+                generateButton.disabled = false;
+                exportButton.disabled = false;
+                 document.querySelector('label[for="csvFileInput"]').classList.remove('disabled');
+                return;
+            }
+
+            const selectedChartType = document.querySelector('input[name="chartType"]:checked').value;
+            const chartTitle = chartTitleInput.value;
+            const xAxisLabel = xAxisLabelInput.value;
+            const yAxisLabel = yAxisLabelInput.value;
+
+
+            // Enhanced Color Palette
+            const backgroundColors = [
+                'rgba(59, 130, 246, 0.8)', /* blue-500 */
+                'rgba(16, 185, 129, 0.8)', /* emerald-500 */
+                'rgba(245, 158, 11, 0.8)', /* amber-500 */
+                'rgba(139, 92, 246, 0.8)', /* violet-500 */
+                'rgba(239, 68, 68, 0.8)',  /* red-500 */
+                'rgba(14, 165, 233, 0.8)', /* sky-500 */
+                'rgba(107, 114, 128, 0.8)',/* gray-500 */
+                'rgba(217, 70, 239, 0.8)', /* fuchsia-500 */
+                'rgba(34, 197, 94, 0.8)',  /* green-500 */
+                'rgba(251, 191, 36, 0.8)', /* yellow-500 */
+            ];
+             const borderColors = [
+                'rgba(59, 130, 246, 1)',
+                'rgba(16, 185, 129, 1)',
+                'rgba(245, 158, 11, 1)',
+                'rgba(139, 92, 246, 1)',
+                'rgba(239, 68, 68, 1)',
+                'rgba(14, 165, 233, 1)',
+                'rgba(107, 114, 128, 1)',
+                'rgba(217, 70, 239, 1)',
+                'rgba(34, 197, 94, 1)',
+                'rgba(251, 191, 36, 1)',
+            ];
+
+
+            // Assign colors and configure specific dataset properties
+            data.datasets.forEach((dataset, index) => {
+                if (selectedChartType === 'pie' || selectedChartType === 'doughnut' || selectedChartType === 'polarArea') {
+                    // For charts where each segment is a data point, use multiple colors per dataset
+                    // Assuming only the first dataset is used for these chart types
+                    if (index === 0) {
+                         dataset.backgroundColor = backgroundColors.slice(0, dataset.data.length);
+                         dataset.borderColor = borderColors.slice(0, dataset.data.length);
+                         dataset.borderWidth = 1; // Add border for segments
+                    } else {
+                         // Hide extra datasets for charts that don't support multiple series easily
+                         dataset.hidden = true;
+                    }
+
+                } else {
+                    // For charts with multiple series, use one color per dataset
+                    dataset.backgroundColor = backgroundColors[index % backgroundColors.length];
+                    dataset.borderColor = borderColors[index % borderColors.length];
+                    dataset.tension = selectedChartType === 'line' ? 0.3 : 0; // Add more curve to lines
+                    dataset.hidden = false; // Ensure dataset is visible
+                    dataset.pointRadius = selectedChartType === 'line' ? 4 : undefined; // Add slightly larger points to line charts
+                    dataset.fill = false; // Don't fill area under line by default
+                }
+
+                 // Configure specific chart types that need data reformatting (Scatter, Bubble)
+                 if ((selectedChartType === 'scatter' || selectedChartType === 'bubble') && index === 0) {
+                     // For scatter/bubble, reformat the data for the first dataset
+                     // Assumes original parsed rows are available and contain [label, x, y, r]
+                     if (data.originalParsedRows && data.originalParsedRows.length > (data.hasHeader ? 1 : 0)) {
+                           const scatterBubbleData = data.originalParsedRows.slice(data.hasHeader ? 1 : 0).map((row, i) => {
+                               // Use parsed values if available, otherwise try original row
+                               const x = parseFloat(row[1]); // Assume 2nd column is X
+                               const y = parseFloat(row[2]); // Assume 3rd column is Y
+                               const r = selectedChartType === 'bubble' && row.length > 3 ? parseFloat(row[3]) : undefined; // Assume 4th column is R for bubble
+
+                               if (!isNaN(x) && !isNaN(y)) {
+                                   const point = { x: x, y: y };
+                                   if (selectedChartType === 'bubble' && !isNaN(r)) {
+                                       point.r = r;
+                                   }
+                                    // Add original label to point for tooltip
+                                    point.label = row[0];
+                                   return point;
+                               } else {
+                                    // Point is invalid for scatter/bubble, will be filtered out
+                               }
+                               return null; // Skip invalid points
+                           }).filter(point => point !== null);
+
+                           dataset.data = scatterBubbleData;
+                           // Hide other datasets for scatter/bubble as multi-series is complex with this parser
+                           if (index > 0) {
+                               dataset.hidden = true;
+                           }
+                      } else {
+                           // If not enough data for scatter/bubble format, clear the dataset and show a warning.
+                           dataset.data = [];
+                           if (index === 0) { // Only warn once for the first dataset
+                                // Check if the general parsing already reported errors for this
+                                if (errorMessage.style.display === 'none' || errorMessage.innerHTML.indexOf('Scatter/Bubble chart requires') === -1) {
+                                     errorMessage.innerHTML += `<li>Scatter/Bubble chart requires data in 'Label, X, Y' or 'Label, X, Y, R' format with valid numbers in X and Y columns. Could not find valid data points.</li>`;
+                                     errorMessage.style.display = 'block';
+                                }
+                           }
+                            dataset.hidden = true;
+                      }
+                 } else if ((selectedChartType === 'scatter' || selectedChartType === 'bubble') && index > 0) {
+                      // Hide subsequent datasets for scatter/bubble
+                      dataset.hidden = true;
+                 }
+            });
+
+
+            const ctx = chartCanvas.getContext('2d');
+
+            const chartConfig = {
+                type: selectedChartType,
+                data: {
+                    labels: (selectedChartType === 'scatter' || selectedChartType === 'bubble') ? undefined : data.labels, // Labels on axis for most charts, not scatter/bubble
+                    datasets: data.datasets.filter(dataset => !dataset.hidden) // Only include non-hidden datasets
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false, // Allow chart to fill container
+                    plugins: {
+                        title: {
+                            display: chartTitle !== '',
+                            text: chartTitle,
+                            font: {
+                                size: 18,
+                                weight: 'bold'
+                            },
+                            color: '#2d3748' /* Dark grey title color */
+                        },
+                        legend: {
+                            display: selectedChartType !== 'pie' && selectedChartType !== 'doughnut', // Hide legend for pie/doughnut
+                            position: 'top',
+                            labels: {
+                                color: '#4a5568' /* Medium grey legend labels */
+                            }
+                        },
+                        tooltip: { // Enable tooltips
+                            enabled: true,
+                            backgroundColor: '#4a5568', /* Darker tooltip background */
+                            titleColor: '#ffffff', /* White tooltip title */
+                            bodyColor: '#e2e8f0', /* Light grey tooltip body */
+                            borderColor: '#cbd5e0', /* Light grey tooltip border */
+                            borderWidth: 1,
+                            cornerRadius: 4,
+                             callbacks: {
+                                 // Custom tooltip for scatter/bubble to show label
+                                 label: function(context) {
+                                     if ((selectedChartType === 'scatter' || selectedChartType === 'bubble') && context.raw && context.raw.label) {
+                                         const point = context.raw;
+                                         let label = `${point.label}: (${point.x}, ${point.y}`;
+                                         if (point.r !== undefined) {
+                                             label += `, r:${point.r}`;
+                                         }
+                                         label += ')';
+                                         return label;
+                                     }
+                                     // Default tooltip for other charts
+                                     let label = context.dataset.label || '';
+                                     if (label) {
+                                         label += ': ';
+                                     }
+                                      // Check if context.parsed exists and has a value property (for most charts)
+                                     if (context.parsed && context.parsed.y !== undefined) {
+                                        label += context.parsed.y;
+                                     } else if (context.parsed !== undefined) {
+                                         // For pie/doughnut/polarArea (context.parsed is just the value)
+                                         const value = context.parsed;
+                                         const total = context.dataset.data.reduce((sum, val) => (isNaN(val) ? 0 : val), 0); // Sum only valid numbers
+                                         const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : 0; // 1 decimal place
+                                         return `${context.label}: ${value} (${percentage}%)`;
+                                     }
+
+                                     return label;
+                                 }
+                             }
+                        },
+                        datalabels: { // Configure datalabels plugin
+                             display: function(context) {
+                                 // Only display datalabels for Pie and Doughnut charts
+                                 const chartType = context.chart.config.type;
+                                 const value = context.dataset.data[context.dataIndex];
+                                 // Only display if value is positive and chart type is pie or doughnut
+                                 return (chartType === 'pie' || chartType === 'doughnut') && value > 0;
+                             },
+                             color: '#ffffff', // White color for labels
+                             font: {
+                                 weight: 'bold',
+                                 size: 12
+                             },
+                             formatter: function(value, context) {
+                                 // Calculate and format percentage for Pie/Doughnut
+                                 const total = context.dataset.data.reduce((sum, val) => (isNaN(val) ? 0 : val), 0); // Sum only valid numbers
+                                 const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : 0; // 1 decimal place
+                                 // Only show label if value is positive and total is > 0
+                                 if (!isNaN(value) && value > 0 && total > 0) {
+                                      return percentage + '%'; // Display percentage
+                                 }
+                                 return ''; // Hide label if value is invalid, zero, or total is zero
+                             },
+                             anchor: 'center', // Position label in the center of the slice
+                             align: 'center', // Align label text center
+                         }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                             display: selectedChartType !== 'pie' && selectedChartType !== 'doughnut' && selectedChartType !== 'polarArea' && selectedChartType !== 'radar', // Hide Y-axis for circular charts
+                             title: {
+                                 display: yAxisLabel !== '' && selectedChartType !== 'pie' && selectedChartType !== 'doughnut' && selectedChartType !== 'polarArea' && selectedChartType !== 'radar',
+                                 text: yAxisLabel,
+                                  font: { weight: 'bold' },
+                                  color: '#4a5568'
+                             },
+                             ticks: {
+                                 color: '#4a5568' /* Axis tick color */
+                             },
+                              grid: {
+                                 color: '#e2e8f0' /* Axis grid color */
+                             }
+                        },
+                         x: {
+                             display: selectedChartType !== 'pie' && selectedChartType !== 'doughnut' && selectedChartType !== 'polarArea' && selectedChartType !== 'radar', // Hide X-axis for circular charts
+                             title: {
+                                 display: xAxisLabel !== '' && selectedChartType !== 'pie' && selectedChartType !== 'doughnut' && selectedChartType !== 'polarArea' && selectedChartType !== 'radar',
+                                 text: xAxisLabel,
+                                 font: { weight: 'bold' },
+                                 color: '#4a5568'
+                             },
+                             ticks: {
+                                 color: '#4a5568' /* Axis tick color */
+                             },
+                              grid: {
+                                 color: '#e2e8f0' /* Axis grid color */
+                             },
+                             type: (selectedChartType === 'scatter' || selectedChartType === 'bubble') ? 'linear' : 'category', // X-axis is linear for scatter/bubble, category for others
+                         }
+                    }
+                }
+            };
+
+             // Specific options for certain chart types
+             if (selectedChartType === 'polarArea' || selectedChartType === 'radar') {
+                 chartConfig.options.scales = {
+                     r: { // Radial scale for Polar Area and Radar
+                         beginAtZero: true,
+                         display: true, // Always display radial scale
+                         pointLabels: { // Show labels on the radar/polar spokes
+                             display: true,
+                             centerPointLabels: true,
+                             font: {
+                                 size: 12,
+                                 color: '#2d3748'
+                             }
+                         },
+                          ticks: {
+                             backdropColor: 'rgba(255, 255, 255, 0.75)', /* Light background for ticks */
+                             color: '#4a5568'
+                         },
+                         grid: {
+                             color: '#cbd5e0' /* Grid lines color */
+                         },
+                         angleLines: {
+                             color: '#cbd5e0' /* Angle lines color */
+                         }
+                     }
+                 };
+                  chartConfig.options.plugins.legend.position = 'right'; // Move legend for these types
+             }
+
+
+            // Create the new chart instance
+            chartInstance = new Chart(ctx, chartConfig);
+
+            // Hide loading indicator and enable buttons
+            loadingIndicator.style.display = 'none';
+            generateButton.disabled = false;
+            exportButton.disabled = false;
+             document.querySelector('label[for="csvFileInput"]').classList.remove('disabled');
+
+
+        }, 50); // Short delay to allow UI update
+    }
+
+    // Function to export chart as PNG
+    function exportChart() {
+        if (chartInstance) {
+            // Create a temporary canvas with white background for export
+            const originalCanvas = chartCanvas;
+            const exportCanvas = document.createElement('canvas');
+            exportCanvas.width = originalCanvas.width;
+            exportCanvas.height = originalCanvas.height;
+            const exportCtx = exportCanvas.getContext('2d');
+
+            // Draw white background
+            exportCtx.fillStyle = '#ffffff'; // White color
+            exportCtx.fillRect(0, 0, exportCanvas.width, exportCanvas.height);
+
+            // Draw the chart on top of the white background
+            exportCtx.drawImage(originalCanvas, 0, 0);
+
+
+            const a = document.createElement('a');
+            a.href = exportCanvas.toDataURL('image/png'); // Get data URL from the new canvas
+            a.download = (chartTitleInput.value || 'chart') + '.png';
+            a.click();
+
+             // Clean up the temporary canvas
+             exportCanvas.remove();
+
+        } else {
+            alert('Please generate a chart first!');
+        }
+    }
+
+    // Function to handle file upload
+    function handleFileUpload(event) {
+        const file = event.target.files[0]; // Get the selected file
+
+        if (!file) {
+            // No file selected
+            return;
+        }
+
+        // Optional: Check file type/extension
+        const allowedTypes = ['text/csv'];
+        const fileExtension = file.name.split('.').pop().toLowerCase();
+        const isCsv = fileExtension === 'csv' || allowedTypes.includes(file.type);
+
+        if (!isCsv) {
+            errorMessage.innerHTML = '<li>Please upload a valid CSV file (.csv).</li>';
+            errorMessage.style.display = 'block';
+             // Reset file input so the same file can be selected again
+            event.target.value = '';
+            return;
+        }
+
+        // Read the file content
+        const reader = new FileReader();
+
+        reader.onloadstart = () => {
+             // Optional: Show a file reading indicator
+             loadingIndicator.innerText = 'Reading file...';
+             loadingIndicator.style.display = 'inline';
+             generateButton.disabled = true;
+             exportButton.disabled = true;
+              document.querySelector('label[for="csvFileInput"]').classList.add('disabled');
+        };
+
+        reader.onload = (e) => {
+            const fileContent = e.target.result;
+            dataInput.value = fileContent; // Put file content into the textarea
+
+            // Automatically generate chart after loading file
+            generateChart();
+
+             // Reset file input so the same file can be selected again
+            event.target.value = '';
+             loadingIndicator.innerText = 'Generating...'; // Reset indicator text
+        };
+
+        reader.onerror = (e) => {
+            console.error("Error reading file:", e);
+            errorMessage.innerHTML = '<li>Error reading file. Please try again.</li>';
+            errorMessage.style.display = 'block';
+             // Reset file input
+            event.target.value = '';
+             loadingIndicator.style.display = 'none'; // Hide indicator
+             generateButton.disabled = false;
+             exportButton.disabled = false;
+              document.querySelector('label[for="csvFileInput"]').classList.remove('disabled');
+              loadingIndicator.innerText = 'Generating...'; // Reset indicator text
+        };
+
+        // Read the file as text
+        reader.readAsText(file);
+    }
+
+
+    // Add event listeners
+    generateButton.addEventListener('click', generateChart);
+    exportButton.addEventListener('click', exportChart);
+    csvFileInput.addEventListener('change', handleFileUpload); // Listen for file selection
+
+
+    // Optional: Add some default data on load
+    dataInput.value = `Month,Series A,Series B\nJan,100,120\nFeb,150,130\nMar,120,150\nApr,180,160\nMay,200,170`;
+    chartTitleInput.value = 'Monthly Performance';
+    xAxisLabelInput.value = 'Month';
+    yAxisLabelInput.value = 'Value';
+    generateChart(); // Generate chart on initial load
+
+</script>
+
+</body>
+</html>
